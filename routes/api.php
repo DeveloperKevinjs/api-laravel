@@ -26,9 +26,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('products', ProductController::class);
 });
 
-// Solo se publica la creación; las demás operaciones se añadirán en próximas etapas.
+// Lectura y creación de categorías; actualización y eliminación siguen pendientes.
 Route::middleware('auth:sanctum')->group(function () {
-    Route::apiResource('categories', CategoryController::class)->only('store');
+    Route::apiResource('categories', CategoryController::class)->only(['index', 'show', 'store']);
 });
 
 // Se conserva la mayúscula de la URL. Solo store está implementado actualmente.

@@ -2,12 +2,15 @@
 
 ## Aprendizaje y alcance
 
-- Este ERP de compras es un proyecto de aprendizaje. Al desarrollar funcionalidades, prioriza una implementación parcial con ejemplos acotados y comentarios `TODO` concretos para que el usuario complete la lógica; no resuelvas todo automáticamente salvo petición explícita.
-- Antes de implementar cualquier cambio, analiza el contexto necesario y presenta un plan breve con los archivos que modificarás, qué implementarás tú y qué partes quedarán como ejercicios `TODO` para el usuario. Espera su aprobación explícita antes de implementar. No completes automáticamente los `TODO` reservados para su aprendizaje.
+- Este ERP de compras es un proyecto de aprendizaje. Para cada funcionalidad solicitada, implementa la mayor parte siguiendo los patrones existentes y reserva **exactamente 3 ejercicios de implementación real** para el usuario: lógica Laravel, Eloquent, controladores, validaciones, relaciones o consultas; nunca tests. No completes esos ejercicios automáticamente.
+- Documenta cada ejercicio con objetivo, comportamiento esperado, archivo y ubicación del `TODO`, y pistas conceptuales sin solución.
+- Prepara **exactamente 3 bugs intencionales por funcionalidad**: uno fácil, uno intermedio y uno difícil. Introdúcelos **solo en una rama de práctica aislada**, tras aprobación explícita; deben ser reproducibles y seguros. Nunca afectarán autenticación, permisos, integridad de datos reales ni operaciones destructivas. Si no hay una rama de práctica segura, detente y consulta antes de introducirlos; no los incluyas en la rama de trabajo normal.
+- Documenta cada bug con síntomas observables, pasos para reproducirlo, resultado esperado y dificultad. No reveles la causa ni su ubicación exacta antes del intento del usuario.
+- Antes de cualquier implementación, analiza el contexto y presenta un plan breve con archivos, trabajo propio, los 3 ejercicios y el aislamiento de los 3 bugs. Espera aprobación explícita. Distingue lo implementado de los ejercicios y de los bugs de práctica.
 - Respeta las convenciones Laravel y los patrones existentes; evita sobreingeniería, nuevas tecnologías y refactorizaciones no solicitadas. Modifica únicamente archivos necesarios para la tarea.
 - Investiga solo archivos relevantes y reutiliza lo ya leído, salvo que haya cambios o dudas concretas. No inspecciones dependencias o generados (`vendor/`, `node_modules/`, `public/build/`, `storage/framework/`) para entender lógica propia.
 - Distingue implementación, flujo parcial y funcionamiento no verificado. No deduzcas funcionalidad por existir un archivo, método o ruta; señala evidencias y límites de la verificación.
-- Propón pruebas enfocadas cuando aporten valor al ejercicio o al comportamiento desarrollado, explicando qué comprueban.
+- Crea o ejecuta verificaciones enfocadas cuando aporten valor, explicando qué comprueban; no reserves escribir tests como ejercicio.
 
 ## Arquitectura y convenciones verificadas
 
@@ -20,9 +23,9 @@
 ## Módulos: estado actual, no garantía de ejecución
 
 - **Proveedores:** CRUD API conectado con validación y borrado lógico (`SupplierController`, sus Requests y modelo); no implica autorización por roles ni ausencia de incidencias.
-- **Productos:** CRUD, filtros y paginación conectados, con partes incompletas. Sus Requests de escritura autorizan mediante Policy aunque los Gates del controlador estén comentados. La Policy permite todo el CRUD a usuarios autenticados; `role` no supone permisos diferenciados. `status` existe, pero los Requests de escritura no lo incluyen.
-- **Categorías:** modelo y migración disponibles; controlador vacío, Request sin reglas y con autorización denegada, sin rutas de gestión. El alta de productos exige una categoría existente.
-- **Requisiciones:** `apiResource` declara operaciones que no están implementadas; el controlador solo tiene `store`. Intenta crear cabecera y líneas en una transacción, con `requisitionLines` (`product_id`, `quantity`). Ambos modelos carecen de configuración de asignación masiva: no des por funcional la creación.
+- **Productos:** CRUD, filtros y paginación conectados, con partes incompletas. Sus Requests de escritura autorizan mediante Policy; la Policy permite el CRUD a usuarios autenticados. `status` existe, pero los Requests de escritura no lo incluyen.
+- **Categorías:** modelo y migración disponibles; `POST /api/categories` usa Request, Policy y Resource. Las demás operaciones de gestión aún no están conectadas. El alta de productos exige una categoría existente.
+- **Requisiciones:** `apiResource` declara operaciones que no están implementadas; el controlador solo tiene `store`, con transacción para cabecera y líneas. Ambos modelos configuran asignación masiva para los campos usados; hay pruebas Feature de creación, validación y rollback en SQLite en memoria, no garantía de producción.
 - La interfaz del ERP es parcial; los comentarios de práctica y esqueletos no son funcionalidades terminadas. Revalida este estado si la tarea cambia esos módulos.
 
 ## Comandos, pruebas y datos
