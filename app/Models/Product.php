@@ -2,20 +2,14 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
-
 use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-
-// use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Product extends Model
 {
-
-    // use SoftDeletes;
-
     protected $fillable = [
         'category_id',
         'code',
@@ -25,6 +19,7 @@ class Product extends Model
         'status',
     ];
 
+    // ProductController combina estos scopes con los filtros del IndexProductRequest.
     #[Scope]
     protected function status(Builder $query, bool $status): void
     {
@@ -63,9 +58,10 @@ class Product extends Model
 
     public function category(): BelongsTo
     {
-        return  $this->belongsTo(Category::class);
+        return $this->belongsTo(Category::class);
     }
 
+    // La FK de estas líneas restringe la eliminación de productos referenciados.
     public function requisitionLines(): HasMany
     {
         return $this->hasMany(RequisitionLine::class);

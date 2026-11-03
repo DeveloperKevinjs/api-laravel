@@ -16,6 +16,7 @@ class Requisition extends Model
         return $this->belongsTo(User::class);
     }
 
+    // createMany() utiliza esta relación para asignar requisition_id a las líneas.
     public function requisitionLines(): HasMany
     {
         return $this->hasMany(RequisitionLine::class);

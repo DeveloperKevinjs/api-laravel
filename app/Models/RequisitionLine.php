@@ -6,8 +6,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-// TODO (aprendizaje): Configurar los atributos asignables de las líneas siguiendo
-// el ejemplo de Requisition, sin incluir la clave foránea que asigna la relación.
+// Ejercicio completado: solo se asignan los datos de la línea; la relación fija requisition_id.
 #[Fillable(['quantity', 'product_id'])]
 class RequisitionLine extends Model
 {

@@ -21,6 +21,7 @@ class ProductResource extends JsonResource
             'description' => $this->description,
             'price' => $this->price,
             'status' => $this->status,
+            // Solo incluye la categoría si el controlador ya cargó la relación.
             'category' => $this->whenLoaded('category', function () {
                 return [
                     'id' => $this->category->id,

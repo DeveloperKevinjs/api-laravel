@@ -1,51 +1,37 @@
 <?php
 
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\RequisitionController;
+use App\Http\Controllers\SupplierController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\SupplierController;
 
-
+// Sanctum reconoce la sesión autenticada; no se emiten tokens Bearer en el login.
 Route::get('/user', function (Request $request) {
     return $request->user();
 })->middleware('auth:sanctum');
 
-
+// Registro e inicio de sesión públicos; los recursos del ERP exigen autenticación.
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
 
-
-// Route::post('/supplier', [SupplierController::class, 'store']);
-// Route::put('/supplier/{supplier}', [SupplierController::class, 'update']);
-// Route::patch('/supplier/{supplier}', [SupplierController::class, 'update']);
-// Route::delete('/suppliers/{supplier}', [SupplierController::class, 'destroy']);
-
+// apiResource conecta las operaciones CRUD con los métodos del controlador.
 Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('suppliers', SupplierController::class);
 });
-#Esto genera conceptualmente:
-// GET     /api/suppliers              → index()
-// POST    /api/suppliers              → store()
-// GET     /api/suppliers/{supplier}   → show()
-// PUT     /api/suppliers/{supplier}   → update()
-// PATCH   /api/suppliers/{supplier}   → update()
-// DELETE  /api/suppliers/{supplier}   → destroy()
-
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('products', ProductController::class);
 });
 
-Route::middleware('auth:sanctum')->group(function(){
-    Route::apiResource('Requisitions', RequisitionController::class);
+// Solo se publica la creación; las demás operaciones se añadirán en próximas etapas.
+Route::middleware('auth:sanctum')->group(function () {
+    Route::apiResource('categories', CategoryController::class)->only('store');
 });
 
-// Route::get('/products', [ProductController::class, 'index']);
-
-
-
-
-
-
+// Se conserva la mayúscula de la URL. Solo store está implementado actualmente.
+Route::middleware('auth:sanctum')->group(function () {
+    Route::apiResource('Requisitions', RequisitionController::class);
+});

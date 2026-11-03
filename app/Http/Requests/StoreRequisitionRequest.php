@@ -12,6 +12,7 @@ class StoreRequisitionRequest extends FormRequest
      */
     public function authorize(): bool
     {
+        // La ruta exige sesión autenticada mediante Sanctum, sin permisos por rol adicionales.
         return true;
     }
 
@@ -32,9 +33,8 @@ class StoreRequisitionRequest extends FormRequest
 
             'requisitionLines.*.product_id' => ['required', 'integer', 'distinct', 'exists:products,id'],
 
-            // TODO (aprendizaje): Limitar la precisión y el valor máximo de quantity
-            // según decimal(12, 3), conservando las validaciones actuales.
-            'requisitionLines.*.quantity' => ['required', 'numeric', 'gt:0'],
+            // Ejercicio completado: decimal(12, 3) admite nueve dígitos enteros y tres decimales.
+            'requisitionLines.*.quantity' => ['required', 'numeric', 'gt:0', 'decimal:0,3', 'max:999999999.999'],
         ];
     }
 }

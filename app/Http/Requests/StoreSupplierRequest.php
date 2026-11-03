@@ -12,6 +12,7 @@ class StoreSupplierRequest extends FormRequest
      */
     public function authorize(): bool
     {
+        // La ruta API exige auth:sanctum; este Request no añade restricciones por rol.
         return true;
     }
 
@@ -27,7 +28,7 @@ class StoreSupplierRequest extends FormRequest
             'document_number' => ['required', 'string', 'max:255', 'unique:suppliers,document_number'],
             'email' => ['nullable', 'email', 'max:255'],
             'phone' => ['nullable', 'string', 'max:255'],
-            'status' => ['nullable', 'boolean']
+            'status' => ['nullable', 'boolean'],
         ];
     }
 }

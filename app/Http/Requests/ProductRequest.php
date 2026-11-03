@@ -7,6 +7,8 @@ use Illuminate\Foundation\Http\FormRequest;
 
 class ProductRequest extends FormRequest
 {
+    // Esqueleto conservado para aprendizaje; el CRUD usa Requests específicos por operación.
+
     /**
      * Determine if the user is authorized to make this request.
      */

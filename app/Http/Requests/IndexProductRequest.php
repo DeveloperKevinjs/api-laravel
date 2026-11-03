@@ -23,16 +23,18 @@ class IndexProductRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'search'      => ['nullable', 'string', 'max:100'],
-            'category_id' => ['nullable', 'integer', 'exists:categories,id'], //'exists:categories,id' si llega category_id, ese ID tiene que existir en categories.id.
-            'status'      => ['nullable', 'boolean'],
-            'min_price'   => ['nullable', 'numeric', 'min:0'],
-            'max_price'   => ['nullable', 'numeric', 'min:0'],
-            'per_page'    => ['nullable', 'integer', 'min:1', 'max:100'],
+            'search' => ['nullable', 'string', 'max:100'],
+            // El filtro solo admite una categoría existente; el controlador aplica el scope.
+            'category_id' => ['nullable', 'integer', 'exists:categories,id'],
+            'status' => ['nullable', 'boolean'],
+            'min_price' => ['nullable', 'numeric', 'min:0'],
+            'max_price' => ['nullable', 'numeric', 'min:0'],
+            'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
 
+            // Lista cerrada de columnas y direcciones que puede usar orderBy().
             'sort' => [
                 'nullable',
-                'in:code,-code,name,-name,price,-price,created_at,-created_at'
+                'in:code,-code,name,-name,price,-price,created_at,-created_at',
             ],
         ];
     }

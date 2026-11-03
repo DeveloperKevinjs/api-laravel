@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\Product;
+use App\Models\RequisitionLine;
 use App\Models\User;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
@@ -74,7 +75,7 @@ afterEach(function () {
 });
 
 test('un usuario autenticado crea una requisición con dos líneas', function () {
-    // Mostrar la excepción original si todavía falta completar el TODO del modelo.
+    // Mostrar la excepción original si falla la creación, en lugar de una respuesta HTTP 500.
     $this->withoutExceptionHandling();
 
     $user = User::create([
@@ -139,9 +140,143 @@ test('un usuario autenticado crea una requisición con dos líneas', function ()
     ]);
 });
 
-// TODO (aprendizaje): Añadir pruebas de cantidades inválidas, incluida la precisión
-// y el límite de decimal(12, 3), comprobando respuesta 422 y ausencia de registros.
-// TODO (aprendizaje): Añadir una prueba de productos repetidos que compruebe
-// respuesta 422 y ausencia de cabecera y líneas.
-// TODO (aprendizaje): Simular un fallo al guardar una línea y comprobar que la
-// transacción revierte la cabecera y todas las líneas, incluso las ya insertadas.
+test('rechaza cantidades inválidas sin guardar la requisición', function ($quantity) {
+    // Preparar: los demás datos son válidos para aislar el error de quantity.
+    $user = User::create([
+        'name' => 'Usuario de validación',
+        'email' => 'validacion@example.test',
+        'password' => 'password-de-prueba',
+    ]);
+
+    $categoryId = DB::table('categories')->insertGetId(['name' => 'Oficina']);
+
+    $product = Product::create([
+        'category_id' => $categoryId,
+        'code' => 'VALIDACION-001',
+        'name' => 'Papel',
+    ]);
+
+    // Actuar: cada caso del dataset envía una cantidad diferente.
+    $response = $this->actingAs($user, 'web')->postJson('/api/Requisitions', [
+        'requisitionLines' => [
+            ['product_id' => $product->id, 'quantity' => $quantity],
+        ],
+    ]);
+
+    // Comprobar: la validación debe rechazar la petición antes de guardar datos.
+    $response->assertStatus(422)
+        ->assertJsonValidationErrors(['requisitionLines.0.quantity']);
+
+    $this->assertDatabaseCount('requisitions', 0);
+    $this->assertDatabaseCount('requisition_lines', 0);
+})->with([
+    'cantidad nula' => [null],
+    'texto no numérico' => ['abc'],
+    'cero' => [0],
+    'cantidad negativa' => [-1],
+    'más de tres decimales' => ['1.2345'],
+    // decimal(12, 3) admite nueve dígitos enteros; este valor ya tiene diez.
+    'supera el límite de decimal(12, 3)' => ['1000000000'],
+]);
+
+test('rechaza líneas con productos repetidos', function () {
+    // Preparar: las cantidades son válidas para aislar el error de productos repetidos.
+    $user = User::create([
+        'name' => 'Usuario de validación',
+        'email' => 'validacion2@example.test',
+        'password' => 'password-de-prueba',
+    ]);
+
+    $categoryId = DB::table('categories')->insertGetId(['name' => 'Oficina']);
+
+    $product = Product::create([
+        'category_id' => $categoryId,
+        'code' => 'VALIDACION-002',
+        'name' => 'Unidades de papa',
+    ]);
+
+    // Actuar: enviar el mismo producto en dos líneas de la petición.
+    $response = $this->actingAs($user, 'web')->postJson('/api/Requisitions', [
+        'requisitionLines' => [
+            ['product_id' => $product->id, 'quantity' => 10],
+            ['product_id' => $product->id, 'quantity' => 20],
+        ],
+    ]);
+
+    // Comprobar: la validación debe rechazar la petición antes de guardar datos.
+    $response->assertStatus(422)
+        ->assertJsonValidationErrors(['requisitionLines.0.product_id', 'requisitionLines.1.product_id']);
+
+    $this->assertDatabaseCount('requisitions', 0);
+    $this->assertDatabaseCount('requisition_lines', 0);
+});
+
+test('rechaza fallas en la inserción de líneas', function () {
+    // Preparar: la petición debe superar la validación y entrar en la transacción.
+    $this->withoutExceptionHandling();
+
+    $user = User::create([
+        'name' => 'Usuario de validación',
+        'email' => 'validacion2@example.test',
+        'password' => 'password-de-prueba',
+    ]);
+
+    $categoryId = DB::table('categories')->insertGetId(['name' => 'Oficina']);
+
+    $product = Product::create([
+        'category_id' => $categoryId,
+        'code' => 'VALIDACION-002',
+        'name' => 'Unidades de papa',
+    ]);
+
+    $secondProduct = Product::create([
+        'category_id' => $categoryId,
+        'code' => 'VALIDACION-003',
+        'name' => 'Unidades de arroz',
+    ]);
+
+    $failure = new RuntimeException('Fallo simulado al insertar la segunda línea');
+    $caughtException = null;
+    $originalDispatcher = RequisitionLine::getEventDispatcher();
+
+    // Aislar el listener sin eliminar los listeners originales de la aplicación.
+    RequisitionLine::setEventDispatcher(clone $originalDispatcher);
+
+    try {
+        RequisitionLine::creating(function (RequisitionLine $line) use ($product, $secondProduct, $failure) {
+            if ($line->product_id !== $secondProduct->id) {
+                return;
+            }
+
+            // Antes del fallo ya existen la cabecera y la primera línea.
+            $this->assertDatabaseCount('requisitions', 1);
+            $this->assertDatabaseCount('requisition_lines', 1);
+            $this->assertDatabaseHas('requisitions', ['id' => $line->requisition_id]);
+            $this->assertDatabaseHas('requisition_lines', [
+                'requisition_id' => $line->requisition_id,
+                'product_id' => $product->id,
+                'quantity' => 10,
+            ]);
+
+            throw $failure;
+        });
+
+        // Actuar: el fallo sucede durante createMany(), no en el FormRequest.
+        $this->actingAs($user, 'web')->postJson('/api/Requisitions', [
+            'requisitionLines' => [
+                ['product_id' => $product->id, 'quantity' => 10],
+                ['product_id' => $secondProduct->id, 'quantity' => 20],
+            ],
+        ]);
+    } catch (RuntimeException $exception) {
+        $caughtException = $exception;
+    } finally {
+        // Restaurar el dispatcher también si falla una aserción o la petición.
+        RequisitionLine::setEventDispatcher($originalDispatcher);
+    }
+
+    // Comprobar el fallo exacto y el rollback de todo lo que ya estaba insertado.
+    expect($caughtException)->toBe($failure);
+    $this->assertDatabaseCount('requisitions', 0);
+    $this->assertDatabaseCount('requisition_lines', 0);
+});

@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Models\Category;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 
@@ -12,7 +13,8 @@ class CategoryRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return false;
+        // La ruta exige autenticación; Laravel descubre CategoryPolicy por su nombre.
+        return $this->user()->can('create', Category::class);
     }
 
     /**
@@ -23,7 +25,9 @@ class CategoryRequest extends FormRequest
     public function rules(): array
     {
         return [
-            //
+            'name' => ['required', 'string', 'max:100', 'unique:categories,name'],
+            // Si no se envía, la base de datos utiliza su valor predeterminado true.
+            'status' => ['sometimes', 'boolean'],
         ];
     }
 }

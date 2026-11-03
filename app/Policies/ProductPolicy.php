@@ -4,12 +4,11 @@ namespace App\Policies;
 
 use App\Models\Product;
 use App\Models\User;
-use Illuminate\Auth\Access\Response;
 
 class ProductPolicy
-{   
-
-    public function before(User $user, string $ability): bool|null
+{
+    // El administrador omite las comprobaciones posteriores, también restore y forceDelete.
+    public function before(User $user, string $ability): ?bool
     {
         if ($user->role === 'admin') {
             return true;
@@ -18,9 +17,7 @@ class ProductPolicy
         return null;
     }
 
-    /**
-     * Determine whether the user can view any models.
-     */
+    // Las operaciones CRUD actuales permiten el acceso a cualquier usuario autenticado.
     public function viewAny(User $user): bool
     {
         return true;

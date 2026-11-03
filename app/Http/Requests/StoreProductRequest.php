@@ -2,10 +2,9 @@
 
 namespace App\Http\Requests;
 
+use App\Models\Product;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
-
-use App\Models\Product;
 
 class StoreProductRequest extends FormRequest
 {
@@ -14,6 +13,7 @@ class StoreProductRequest extends FormRequest
      */
     public function authorize(): bool
     {
+        // Laravel resuelve ProductPolicy antes de ejecutar store en el controlador.
         return $this->user()->can('create', Product::class);
     }
 
@@ -29,7 +29,7 @@ class StoreProductRequest extends FormRequest
             'code' => ['required', 'string', 'unique:products,code'],
             'name' => ['required', 'string', 'max:150'],
             'description' => ['nullable', 'string', 'max:200'],
-            'price' => ['required', 'numeric', 'min:0']
+            'price' => ['required', 'numeric', 'min:0'],
         ];
     }
 }

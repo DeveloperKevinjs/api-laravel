@@ -12,6 +12,7 @@ class LoginRequest extends FormRequest
      */
     public function authorize(): bool
     {
+        // El login es público; AuthController comprueba las credenciales con Auth::attempt.
         return true;
     }
 
@@ -23,8 +24,8 @@ class LoginRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'email'    => ['required', 'string'],
-            'password' => ['required', 'string']
+            'email' => ['required', 'string'],
+            'password' => ['required', 'string'],
         ];
     }
 }

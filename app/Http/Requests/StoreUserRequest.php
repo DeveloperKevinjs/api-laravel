@@ -12,6 +12,7 @@ class StoreUserRequest extends FormRequest
      */
     public function authorize(): bool
     {
+        // El registro es público; User limita la asignación masiva y aplica hash al password.
         return true;
     }
 
@@ -23,9 +24,9 @@ class StoreUserRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name'     => ['required', 'string', 'max:150'],
-            'email'    => ['required', 'email', 'unique:users,email'],
-            'password' => ['required', 'string', 'min:8']
+            'name' => ['required', 'string', 'max:150'],
+            'email' => ['required', 'email', 'unique:users,email'],
+            'password' => ['required', 'string', 'min:8'],
         ];
     }
 }
