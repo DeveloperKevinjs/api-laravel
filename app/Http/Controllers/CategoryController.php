@@ -28,22 +28,7 @@ class CategoryController extends Controller
         // Un orden estable evita cambios de posición entre páginas.
         $categories = $query->orderBy('name')->orderBy('id')->paginate(15)->withQueryString();
 
-        if ($categories->currentPage() > 1) {
-            $offset = ($categories->currentPage() - 1) * $categories->perPage();
-            $categories->setCollection(
-                Category::query()->orderBy('name')->orderBy('id')
-                    ->offset($offset - 1)->limit($categories->perPage())->get()
-            );
-        }
-
-        $response = CategoryResource::collection($categories)->response();
-        $payload = $response->getData(true);
-
-        if ($categories->hasMorePages()) {
-            $payload['links']['next'] = $categories->url($categories->currentPage());
-        }
-
-        return $response->setData($payload);
+        return CategoryResource::collection($categories);
     }
 
     public function show(Category $category)
