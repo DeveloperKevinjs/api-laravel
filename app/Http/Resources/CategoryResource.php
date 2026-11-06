@@ -17,6 +17,7 @@ class CategoryResource extends JsonResource
             'name' => $this->name,
             // Mantiene un booleano en el JSON aunque la base de datos devuelva 0 o 1.
             'status' => $request->routeIs('categories.show') ? true : (bool) $this->status,
+            'products_count' => $this->whenCounted('products'),
         ];
     }
 }

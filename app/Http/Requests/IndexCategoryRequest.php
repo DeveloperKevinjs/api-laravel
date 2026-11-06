@@ -19,6 +19,8 @@ class IndexCategoryRequest extends FormRequest
     public function rules(): array
     {
         return [
+            'search' => ['sometimes', 'string', 'max:100'],
+            'status' => ['sometimes', 'in:0,1'],
             'page' => ['sometimes', 'integer', 'min:1'],
         ];
     }

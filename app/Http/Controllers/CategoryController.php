@@ -17,10 +17,13 @@ class CategoryController extends Controller
         $filters = $request->validated();
         $query = Category::query();
 
-        // TODO (ejercicio 1): validar status en IndexCategoryRequest y filtrar
-        // categorías activas o inactivas, incluido el valor 0.
-        // TODO (ejercicio 2): validar search en IndexCategoryRequest y buscar
-        // coincidencias parciales en el nombre antes de paginar.
+        if (array_key_exists('status', $filters)) {
+            $query->status($filters['status']);
+        }
+
+        if (array_key_exists('search', $filters)) {
+            $query->search($filters['search']);
+        }
 
         // Un orden estable evita cambios de posición entre páginas.
         $categories = $query->orderBy('name')->orderBy('id')->paginate(15)->withQueryString();
@@ -47,8 +50,8 @@ class CategoryController extends Controller
     {
         Gate::authorize('view', $category);
 
-        // TODO (ejercicio 3): consultar el número de productos con la relación
-        // products y mostrarlo solo en el detalle mediante CategoryResource.
+        $category->loadCount('products');
+
         return new CategoryResource($category);
     }
 
