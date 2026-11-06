@@ -40,6 +40,18 @@ beforeEach(function () {
         $table->boolean('status')->default(true);
         $table->timestamps();
     });
+
+    // La relación products servirá para comprobar el ejercicio de conteo sin migraciones.
+    $schema->create('products', function (Blueprint $table) {
+        $table->id();
+        $table->foreignId('category_id')->constrained()->restrictOnDelete();
+        $table->string('code', 50)->unique();
+        $table->string('name', 150);
+        $table->text('description')->nullable();
+        $table->decimal('price', 12, 2)->default(0);
+        $table->boolean('status')->default(true);
+        $table->timestamps();
+    });
 });
 
 afterEach(function () {
@@ -151,4 +163,102 @@ test('rechaza un estado de categoría inválido', function () {
         ->assertJsonMissingValidationErrors(['name']);
 
     $this->assertDatabaseCount('categories', 0);
+});
+
+test('un visitante no puede consultar las categorías', function () {
+    $category = Category::create(['name' => 'Oficina']);
+
+    $this->getJson('/api/categories')->assertUnauthorized();
+    $this->getJson("/api/categories/{$category->id}")->assertUnauthorized();
+});
+
+test('un usuario autenticado lista categorías por nombre con paginación', function () {
+    $user = User::create([
+        'name' => 'Usuario de categorías',
+        'email' => 'listado@example.test',
+        'password' => 'password-de-prueba',
+    ]);
+
+    // Insertar en orden inverso permite verificar el orden alfabético del listado.
+    foreach (range(16, 1) as $number) {
+        Category::create(['name' => sprintf('Categoría %02d', $number)]);
+    }
+
+    $firstPage = $this->actingAs($user, 'web')->getJson('/api/categories');
+
+    $firstPage->assertOk()
+        ->assertJsonCount(15, 'data')
+        ->assertJsonPath('data.0.name', 'Categoría 01')
+        ->assertJsonPath('data.14.name', 'Categoría 15')
+        ->assertJsonPath('meta.total', 16)
+        ->assertJsonPath('meta.current_page', 1);
+
+    expect($firstPage->json('links.next'))->not->toBeNull();
+
+    $secondPage = $this->getJson('/api/categories?page=2');
+
+    $secondPage->assertOk()
+        ->assertJsonCount(1, 'data')
+        ->assertJsonPath('data.0.name', 'Categoría 16')
+        ->assertJsonPath('meta.current_page', 2)
+        ->assertJsonPath('meta.total', 16);
+});
+
+test('el enlace siguiente del listado lleva a la segunda página', function () {
+    $user = User::create([
+        'name' => 'Usuario de categorías',
+        'email' => 'navegacion@example.test',
+        'password' => 'password-de-prueba',
+    ]);
+
+    foreach (range(1, 16) as $number) {
+        Category::create(['name' => sprintf('Categoría %02d', $number)]);
+    }
+
+    $firstPage = $this->actingAs($user, 'web')->getJson('/api/categories');
+    $firstPage->assertOk();
+
+    $nextUrl = $firstPage->json('links.next');
+    expect($nextUrl)->not->toBeNull();
+
+    $this->getJson($nextUrl)->assertOk()
+        ->assertJsonPath('meta.current_page', 2);
+});
+
+test('rechaza un número de página inválido', function () {
+    $user = User::create([
+        'name' => 'Usuario de categorías',
+        'email' => 'pagina@example.test',
+        'password' => 'password-de-prueba',
+    ]);
+
+    $this->actingAs($user, 'web')->getJson('/api/categories?page=0')
+        ->assertStatus(422)
+        ->assertJsonValidationErrors(['page']);
+});
+
+test('un usuario autenticado consulta el detalle de una categoría', function () {
+    $user = User::create([
+        'name' => 'Usuario de categorías',
+        'email' => 'detalle@example.test',
+        'password' => 'password-de-prueba',
+    ]);
+    $category = Category::create(['name' => 'Papelería', 'status' => false]);
+
+    $this->actingAs($user, 'web')->getJson("/api/categories/{$category->id}")
+        ->assertOk()
+        ->assertJsonPath('data.id', $category->id)
+        ->assertJsonPath('data.name', 'Papelería')
+        ->assertJsonPath('data.status', false);
+});
+
+test('consultar una categoría inexistente devuelve 404', function () {
+    $user = User::create([
+        'name' => 'Usuario de categorías',
+        'email' => 'inexistente@example.test',
+        'password' => 'password-de-prueba',
+    ]);
+
+    $this->actingAs($user, 'web')->getJson('/api/categories/999')
+        ->assertNotFound();
 });
