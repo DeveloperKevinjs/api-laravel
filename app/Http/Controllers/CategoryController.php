@@ -4,9 +4,11 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\CategoryRequest;
 use App\Http\Requests\IndexCategoryRequest;
+use App\Http\Requests\UpdateCategoryRequest;
 use App\Http\Resources\CategoryResource;
 use App\Models\Category;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Validation\ValidationException;
 
 class CategoryController extends Controller
 {
@@ -49,5 +51,35 @@ class CategoryController extends Controller
         $category->refresh();
 
         return (new CategoryResource($category))->response()->setStatusCode(201);
+    }
+
+    public function update(UpdateCategoryRequest $request, Category $category)
+    {
+        $attributes = $request->validated();
+
+        // if ($request->isMethod('PUT') && ! array_key_exists('name', $attributes)) {
+        //     throw ValidationException::withMessages(['name' => 'El nombre es obligatorio para actualizar.']);
+        // }
+
+        if (array_key_exists('name', $attributes) && array_key_exists('status', $attributes) && $category->products()->exists()) {
+            return response()->json(['message' => 'La categoría no se puede actualizar en este estado.'], 409);
+        }
+
+        $category->update($attributes);
+
+        return new CategoryResource($category);
+    }
+
+    public function destroy(Category $category)
+    {
+        Gate::authorize('delete', $category);
+
+        if ($category->products()->exists()) {
+            return response()->json(['message' => 'No se puede eliminar la categoría porque tiene productos asociados.'], 409);
+        }
+
+        $category->delete();
+
+        return response()->noContent();
     }
 }

@@ -83,31 +83,31 @@ class ProductController extends Controller
             ->with('category')
             ->when(
                 array_key_exists('status', $filters),
-                fn (Builder $query) => $query->status(
+                fn(Builder $query) => $query->filterStatus(
                     $filters['status']
                 )
             )
             ->when(
                 $filters['category_id'] ?? null,
-                fn (Builder $query) => $query->category_id(
+                fn(Builder $query) => $query->filterCategory(
                     $filters['category_id']
                 )
             )
             ->when(
                 $filters['search'] ?? null,
-                fn (Builder $query) => $query->search(
+                fn(Builder $query) => $query->search(
                     $filters['search']
                 )
             )
             ->when(
                 array_key_exists('min_price', $filters),
-                fn (Builder $query) => $query->min_price(
+                fn(Builder $query) => $query->min_price(
                     $filters['min_price']
                 )
             )
             ->when(
                 array_key_exists('max_price', $filters),
-                fn (Builder $query) => $query->max_price(
+                fn(Builder $query) => $query->max_price(
                     $filters['max_price']
                 )
             );

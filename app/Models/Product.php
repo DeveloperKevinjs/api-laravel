@@ -21,13 +21,13 @@ class Product extends Model
 
     // ProductController combina estos scopes con los filtros del IndexProductRequest.
     #[Scope]
-    protected function status(Builder $query, bool $status): void
+    protected function filterStatus(Builder $query, bool $status): void
     {
         $query->where('status', $status);
     }
 
     #[Scope]
-    protected function category_id(Builder $query, int $categoryId): void
+    protected function filterCategory(Builder $query, int $categoryId): void
     {
         $query->where('category_id', $categoryId);
     }

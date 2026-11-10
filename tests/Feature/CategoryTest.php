@@ -262,3 +262,149 @@ test('consultar una categoría inexistente devuelve 404', function () {
     $this->actingAs($user, 'web')->getJson('/api/categories/999')
         ->assertNotFound();
 });
+
+test('un visitante no puede actualizar ni eliminar categorías', function () {
+    $category = Category::create(['name' => 'Oficina']);
+
+    $this->putJson("/api/categories/{$category->id}", ['name' => 'Papelería'])->assertUnauthorized();
+    $this->deleteJson("/api/categories/{$category->id}")->assertUnauthorized();
+
+    $this->assertDatabaseHas('categories', ['id' => $category->id, 'name' => 'Oficina']);
+});
+
+test('se puede conservar el propio nombre al actualizar una categoría', function () {
+    $user = User::create(['name' => 'Usuario', 'email' => 'propio@example.test', 'password' => 'password-de-prueba']);
+    $category = Category::create(['name' => 'Oficina']);
+
+    $this->actingAs($user, 'web')->putJson("/api/categories/{$category->id}", ['name' => 'Oficina'])
+        ->assertOk()
+        ->assertJsonPath('data.name', 'Oficina');
+});
+
+test('no se puede actualizar una categoría con el nombre de otra', function () {
+    $user = User::create(['name' => 'Usuario', 'email' => 'duplicado@example.test', 'password' => 'password-de-prueba']);
+    $category = Category::create(['name' => 'Oficina']);
+    Category::create(['name' => 'Papelería']);
+
+    $this->actingAs($user, 'web')->putJson("/api/categories/{$category->id}", ['name' => 'Papelería'])
+        ->assertStatus(422)
+        ->assertJsonValidationErrors(['name']);
+
+    $this->assertDatabaseHas('categories', ['id' => $category->id, 'name' => 'Oficina']);
+});
+
+test('actualizar una categoría persiste los atributos validados', function () {
+    $user = User::create(['name' => 'Usuario', 'email' => 'actualizar@example.test', 'password' => 'password-de-prueba']);
+    $category = Category::create(['name' => 'Oficina']);
+
+    $this->actingAs($user, 'web')->putJson("/api/categories/{$category->id}", [
+        'name' => 'Papelería',
+        'status' => false,
+    ])->assertOk()
+        ->assertJsonPath('data.name', 'Papelería')
+        ->assertJsonPath('data.status', false);
+
+    $this->assertDatabaseHas('categories', ['id' => $category->id, 'name' => 'Papelería', 'status' => false]);
+});
+
+test('se rechazan datos de actualización inválidos', function () {
+    $user = User::create(['name' => 'Usuario', 'email' => 'invalido@example.test', 'password' => 'password-de-prueba']);
+    $category = Category::create(['name' => 'Oficina']);
+
+    $this->actingAs($user, 'web')->putJson("/api/categories/{$category->id}", [
+        'name' => str_repeat('a', 101),
+        'status' => 'activo',
+    ])->assertStatus(422)->assertJsonValidationErrors(['name', 'status']);
+
+    $this->assertDatabaseHas('categories', ['id' => $category->id, 'name' => 'Oficina']);
+});
+
+test('PATCH permite actualizar una categoría', function () {
+    $user = User::create(['name' => 'Usuario', 'email' => 'patch@example.test', 'password' => 'password-de-prueba']);
+    $category = Category::create(['name' => 'Oficina']);
+
+    $this->actingAs($user, 'web')->putJson("/api/categories/{$category->id}", ['name' => 'Papelería'])
+        ->assertOk();
+
+    $this->actingAs($user, 'web')->patchJson("/api/categories/{$category->id}", ['name' => 'Tecnología'])
+        ->assertOk()
+        ->assertJsonPath('data.name', 'Tecnología');
+
+    $this->assertDatabaseHas('categories', ['id' => $category->id, 'name' => 'Tecnología']);
+});
+
+test('PUT permite actualizar solo el estado de una categoría', function () {
+    $user = User::create(['name' => 'Usuario', 'email' => 'parcial@example.test', 'password' => 'password-de-prueba']);
+    $category = Category::create(['name' => 'Oficina']);
+
+    $response = $this->actingAs($user, 'web')->putJson("/api/categories/{$category->id}", ['status' => false]);
+
+    if ($response->status() !== 200) {
+        $this->assertDatabaseHas('categories', ['id' => $category->id, 'name' => 'Oficina', 'status' => true]);
+    }
+
+    $response->assertOk();
+
+    $this->assertDatabaseHas('categories', ['id' => $category->id, 'name' => 'Oficina', 'status' => false]);
+});
+
+test('se puede actualizar una categoría con productos sin cambiar sus productos', function () {
+    $user = User::create(['name' => 'Usuario', 'email' => 'relacionada@example.test', 'password' => 'password-de-prueba']);
+    $category = Category::create(['name' => 'Oficina']);
+
+    DB::table('products')->insert([
+        'category_id' => $category->id,
+        'code' => 'P-CAT-01',
+        'name' => 'Cuaderno',
+        'price' => 5,
+    ]);
+
+    $response = $this->actingAs($user, 'web')->putJson("/api/categories/{$category->id}", [
+        'name' => 'Papelería',
+        'status' => false,
+    ]);
+
+    if ($response->status() !== 200) {
+        $this->assertDatabaseHas('categories', ['id' => $category->id, 'name' => 'Oficina', 'status' => true]);
+    }
+
+    $this->assertDatabaseHas('products', ['category_id' => $category->id, 'code' => 'P-CAT-01']);
+    $response->assertOk();
+    $this->assertDatabaseHas('categories', ['id' => $category->id, 'name' => 'Papelería', 'status' => false]);
+});
+
+test('una categoría con productos no se puede eliminar', function () {
+    $user = User::create(['name' => 'Usuario', 'email' => 'ocupada@example.test', 'password' => 'password-de-prueba']);
+    $category = Category::create(['name' => 'Oficina']);
+
+    DB::table('products')->insert([
+        'category_id' => $category->id,
+        'code' => 'P-CAT-02',
+        'name' => 'Bolígrafo',
+        'price' => 2,
+    ]);
+
+    $this->actingAs($user, 'web')->deleteJson("/api/categories/{$category->id}")
+        ->assertStatus(409);
+
+    $this->assertDatabaseHas('categories', ['id' => $category->id]);
+    $this->assertDatabaseHas('products', ['category_id' => $category->id, 'code' => 'P-CAT-02']);
+});
+
+test('una categoría sin productos se puede eliminar', function () {
+    $user = User::create(['name' => 'Usuario', 'email' => 'libre@example.test', 'password' => 'password-de-prueba']);
+    $category = Category::create(['name' => 'Oficina']);
+
+    $this->actingAs($user, 'web')->deleteJson("/api/categories/{$category->id}")
+        ->assertNoContent();
+
+    $this->assertDatabaseMissing('categories', ['id' => $category->id]);
+});
+
+test('actualizar o eliminar una categoría inexistente devuelve 404', function () {
+    $user = User::create(['name' => 'Usuario', 'email' => 'ausente@example.test', 'password' => 'password-de-prueba']);
+
+    $this->actingAs($user, 'web')->putJson('/api/categories/999', ['name' => 'Oficina'])
+        ->assertNotFound();
+    $this->deleteJson('/api/categories/999')->assertNotFound();
+});

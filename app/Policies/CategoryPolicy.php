@@ -22,4 +22,14 @@ class CategoryPolicy
         // En esta etapa cualquier usuario autenticado puede crear, sin distinción por rol.
         return true;
     }
+
+    public function update(User $user, Category $category): bool
+    {
+        return true;
+    }
+
+    public function delete(User $user, Category $category): bool
+    {
+        return true;
+    }
 }

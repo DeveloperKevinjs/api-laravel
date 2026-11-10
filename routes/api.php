@@ -26,9 +26,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('products', ProductController::class);
 });
 
-// Lectura y creación de categorías; actualización y eliminación siguen pendientes.
+// Gestión de categorías protegida por la sesión autenticada.
 Route::middleware('auth:sanctum')->group(function () {
-    Route::apiResource('categories', CategoryController::class)->only(['index', 'show', 'store']);
+    Route::apiResource('categories', CategoryController::class)->only(['index', 'show', 'store', 'destroy', 'update']);
 });
 
 // Se conserva la mayúscula de la URL. Solo store está implementado actualmente.
